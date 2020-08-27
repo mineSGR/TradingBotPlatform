@@ -78,7 +78,7 @@ public class Crawler extends Thread {
 		}
 	}
 	
-	private void convertStock(ArrayList<String> names, ArrayList<String> input) {
+	private void convertStock(ArrayList<String> names, ArrayList<String> storage) {
 		lock.writeLock().lock();
 		try {
 			int valueCount = 0;
@@ -86,13 +86,13 @@ public class Crawler extends Thread {
 				boolean foundPlace = false;
 				for(int j = 0; j < stocks.size(); j++) {
 					if(stocks.get(j).get(0).name.equals(names.get(i))) {
-						stocks.get(j).add(new main.Start.stock(names.get(i), new BigDecimal(input.get(valueCount))));
+						stocks.get(j).add(new main.Start.stock(names.get(i), new BigDecimal(storage.get(valueCount))));
 						foundPlace = true;
 					}
 				}
 				if(!foundPlace) {
 					stocks.add(new ArrayList<main.Start.stock>());
-					stocks.get(stocks.size()-1).add(new main.Start.stock(names.get(i), new BigDecimal(input.get(valueCount))));
+					stocks.get(stocks.size()-1).add(new main.Start.stock(names.get(i), new BigDecimal(storage.get(valueCount))));
 				}
 				valueCount += 8;
 			}
