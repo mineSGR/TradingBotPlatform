@@ -9,6 +9,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import bot.Crawler;
 import bot.TradingBot;
@@ -19,23 +20,47 @@ public class Start {
 		
 		public String name;
 		public BigDecimal value;
+		public boolean newAktie;
 		
 		public stock(String name, BigDecimal value) {
 			this.name = name;
 			this.value = value;
+			newAktie = true;
 		}
+	}
+	
+	public static class user {
+		public TradingBot bot;
+		public String userName;
+		public String password;
 	}
 	
 	private static String map;
 	public static Crawler scout;
-	public static ArrayList<TradingBot> botArmy;
+	public static ArrayList<user> allUsers;
+	public static ReentrantReadWriteLock botArmyLock;
 	
 	public static void main(String[] args) {
 		load();
 		map = System.getenv("Appdata") + "\\SebbeProduktion\\TradingBot";
-		botArmy = new ArrayList<TradingBot>();
+		allUsers = new ArrayList<user>();
+		botArmyLock = new ReentrantReadWriteLock();
 		scout = new Crawler();
 		save();
+	}
+	
+	private static void checkID() {
+		//Spara alla ID i en fil så att ingen kan ha samma ID som någon annan
+	}
+	
+	private static void addNewBot() {
+		botArmyLock.writeLock().lock();
+		try {
+			
+		} finally {
+			botArmyLock.writeLock().unlock();
+		}
+		
 	}
 	
 	private static void save() {
@@ -53,7 +78,7 @@ public class Start {
 		}
 		try {
 			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
-			oos.writeObject(botArmy);
+			oos.writeObject(allUsers);
 			scout.lock.readLock().lock();
 			try {
 				oos.writeObject(scout.stocks);
@@ -82,7 +107,7 @@ public class Start {
 		}
 		try {
 			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
-			ArrayList<TradingBot> tmpArrList = (ArrayList<TradingBot>) ois.readObject();
+			ArrayList<user> tmpArrList = (ArrayList<user>) ois.readObject();
 			scout.lock.writeLock().lock();
 			try {
 				ArrayList<ArrayList<stock>> tmpArrArrList = (ArrayList<ArrayList<stock>>) ois.readObject();
@@ -93,7 +118,7 @@ public class Start {
 				scout.lock.writeLock().unlock();
 			}
 			if(tmpArrList != null) {
-				botArmy = tmpArrList;
+				allUsers = tmpArrList;
 			}
 			ois.close();
 		} catch(Throwable t) {
