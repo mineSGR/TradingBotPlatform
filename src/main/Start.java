@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -55,8 +56,19 @@ public class Start {
 		save();
 	}
 	
-	private static void checkID() {
-		//Spara alla ID i en fil så att ingen kan ha samma ID som någon annan
+	private static boolean nameExists(String name) {
+		userListLock.readLock().lock();
+		boolean found = false;
+		try {
+			for(int i = 0; i < allUsers.size(); i++) {
+				if(allUsers.get(i).username.equals(name)) {
+					found = true;
+				}
+			}
+		} finally {
+			userListLock.readLock().unlock();
+		}
+		return found;
 	}
 	
 	private static void newUser(String name) {
@@ -66,7 +78,6 @@ public class Start {
 		} finally {
 			userListLock.writeLock().unlock();
 		}
-		
 	}
 	
 	private static void save() {
