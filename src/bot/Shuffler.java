@@ -12,7 +12,7 @@ public class Shuffler extends Thread {
 		this.start();
 	}
 	
-	public void run() {
+	public void run() {//Check så att alla lock ligger rätt
 		parent.scout.lock.writeLock().lock();
 		try {
 			for(int j = 0; j < parent.scout.stocks.size(); j++) {
