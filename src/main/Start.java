@@ -44,6 +44,7 @@ public class Start {
 	
 	private static String map;
 	public static Crawler scout;
+	public static Shuffler dealer;
 	public static ArrayList<user> allUsers;
 	public static ReentrantReadWriteLock userListLock;
 	
@@ -53,6 +54,7 @@ public class Start {
 		allUsers = new ArrayList<user>();
 		userListLock = new ReentrantReadWriteLock();
 		scout = new Crawler();
+		dealer = new Shuffler();
 		save();
 	}
 	

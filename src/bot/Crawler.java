@@ -11,7 +11,7 @@ import org.jsoup.select.Elements;
 
 public class Crawler extends Thread {
 
-	private String website = "https://www.avanza.se/aktier/lista.html";
+	private final String website = "https://www.avanza.se/aktier/lista.html";
 	public boolean running;
 	public ArrayList<ArrayList<main.Start.stock>> stocks;
 	public ReadWriteLock lock;
@@ -25,7 +25,7 @@ public class Crawler extends Thread {
 	}
 	
 	public void run() {
-		while(true) {
+		while(running) {
 			Elements aktier = null;
 			try {
 				Document src = Jsoup.connect(website).get();
@@ -59,7 +59,7 @@ public class Crawler extends Thread {
 									if(temper[m] != null && !temper[m].contains("span") && !temper[m].contains("td") && !temper[m].equals(" ")) {
 										if(temper[m].contains("&nbsp")) {
 											String[] comp = temper[m].split("&nbsp;");
-											storage.add(comp[0] + " " + comp[1]);
+											storage.add(comp[0] + " " + comp[1]); //Om konvertering till int krashar kolla dethär
 										} else {
 											storage.add(temper[m]);
 										}
@@ -70,6 +70,7 @@ public class Crawler extends Thread {
 					}
 				}
 				convertStock(names, storage);
+				main.dealer.start();
 			}
 			try {
 				Thread.sleep(300000);
