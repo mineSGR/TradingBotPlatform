@@ -17,7 +17,7 @@ public class TradingBot extends Thread {
 		runner = true;
 		aktier = new ArrayList<ArrayList<main.Start.stock>>();
 		aktieLock = new ReentrantReadWriteLock();
-		boughtAktie = new ArrayList<main.start.Stock[]>();
+		boughtAktie = new ArrayList<main.Start.stock[]>();
 		this.start();
 	}
 	

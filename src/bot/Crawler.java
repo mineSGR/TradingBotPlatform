@@ -70,7 +70,7 @@ public class Crawler extends Thread {
 					}
 				}
 				convertStock(names, storage);
-				main.dealer.start();
+				main.Start.dealer.start();
 			}
 			try {
 				Thread.sleep(300000);

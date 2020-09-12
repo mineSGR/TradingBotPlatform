@@ -8,11 +8,11 @@ import java.io.FileWriter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
-import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import bot.Crawler;
+import bot.Shuffler;
 import bot.TradingBot;
 
 public class Start {
