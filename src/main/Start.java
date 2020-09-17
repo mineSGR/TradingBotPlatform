@@ -7,8 +7,12 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import bot.Crawler;
@@ -34,11 +38,49 @@ public class Start {
 		public TradingBot bot;
 		public String username;
 		public String password;
+		public connection conn;
 		
 		public user(String username, String password) {
 			this.username = username;
 			this.password = password;
 			bot = new TradingBot();
+		}
+	}
+	
+	public static class connection {
+		private Socket s;
+		private Scanner reader;
+		private PrintWriter writer;
+		
+		public connection(Socket s) throws Throwable {
+			this.s = s;
+			this.reader = new Scanner(s.getInputStream());
+			this.writer = new PrintWriter(s.getOutputStream());
+			login();
+		}
+		
+		public void login() {
+			String choose = reader.nextLine();
+			String name = reader.nextLine();
+			String psw = reader.nextLine();
+			userListLock.writeLock().lock();
+			try {
+				if(choose.equals("Login")) {
+					boolean notFound = true;
+					for(int i = 0; i < allUsers.size(); i++) {
+						if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password) && notFound) {
+							allUsers.get(i).conn = this;
+							notFound = false;
+						}
+					}
+				} else {
+					if(!nameExists(name)) {
+						
+					}
+				}
+			} finally {
+				userListLock.writeLock().unlock();
+			}
 		}
 	}
 	
@@ -48,13 +90,35 @@ public class Start {
 	public static ArrayList<user> allUsers;
 	public static ReentrantReadWriteLock userListLock;
 	
+	private static boolean serverRunning = true;
+	public static ServerSocket ss;
+	private static Thread serverInput;
+	
 	public static void main(String[] args) {
-		load();
 		map = System.getenv("Appdata") + "\\SebbeProduktion\\TradingBot";
 		allUsers = new ArrayList<user>();
 		userListLock = new ReentrantReadWriteLock();
 		scout = new Crawler();
 		dealer = new Shuffler();
+		load();
+		
+		try {
+			ss = new ServerSocket(8989);
+			serverInput = new Thread(() -> {
+				while(serverRunning) {
+					try {
+						ss.wait();
+						new Thread(() -> {try {connection c = new connection(ss.accept());} catch (Throwable t) {}});
+					} catch(Throwable t) {
+						main.Start.errorLogg("Connecting to server: " + t.toString());
+					}
+				}
+			});
+			serverInput.start();
+		} catch(Throwable t) {
+			errorLogg("Tried to start the server: " + t.toString());
+		}
+		
 		save();
 	}
 	
@@ -71,15 +135,6 @@ public class Start {
 			userListLock.readLock().unlock();
 		}
 		return found;
-	}
-	
-	private static void newUser(String name) {
-		userListLock.writeLock().lock();
-		try {
-			
-		} finally {
-			userListLock.writeLock().unlock();
-		}
 	}
 	
 	private static void save() {

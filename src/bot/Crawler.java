@@ -57,9 +57,15 @@ public class Crawler extends Thread {
 								for(int m = 0; m < temper.length; m++) {
 									
 									if(temper[m] != null && !temper[m].contains("span") && !temper[m].contains("td") && !temper[m].equals(" ")) {
+										if(temper[m].contains(",")) {
+											String[] commTmp = temper[m].split(",");
+											temper[m] = commTmp[0] + "." + commTmp[1];
+										}
+										String[] blankTmp = temper[m].split(" ");
+										temper[m] = blankTmp[blankTmp.length-1];
 										if(temper[m].contains("&nbsp")) {
 											String[] comp = temper[m].split("&nbsp;");
-											storage.add(comp[0] + " " + comp[1]); //Om konvertering till int krashar kolla dethär
+											storage.add(comp[0] + " " + comp[1]);
 										} else {
 											storage.add(temper[m]);
 										}
@@ -87,9 +93,11 @@ public class Crawler extends Thread {
 			for(int i = 0; i < names.size(); i++) {
 				boolean foundPlace = false;
 				for(int j = 0; j < stocks.size(); j++) {
-					if(stocks.get(j).get(0).name.equals(names.get(i))) {
-						stocks.get(j).add(new main.Start.stock(names.get(i), new BigDecimal(storage.get(valueCount))));
-						foundPlace = true;
+					if(stocks.get(j).size() > 0) {
+						if(stocks.get(j).get(0).name.equals(names.get(i))) {
+							stocks.get(j).add(new main.Start.stock(names.get(i), new BigDecimal(storage.get(valueCount))));
+							foundPlace = true;
+						}
 					}
 				}
 				if(!foundPlace) {
