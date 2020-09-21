@@ -7,6 +7,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class TradingBot extends Thread {
 
 	private final int maxSameAktie = 5;
+	private final int antalSparadeAktier = 100;
 	public ArrayList<ArrayList<main.Start.stock>> aktier;
 	public ReentrantReadWriteLock aktieLock;
 	private ArrayList<main.Start.stock[]> boughtAktie;
@@ -26,6 +27,9 @@ public class TradingBot extends Thread {
 			aktieLock.writeLock().lock();
 			try {
 				for(int i = 0; i < aktier.size(); i++) {
+					if(aktier.get(i).size() > antalSparadeAktier) {
+						aktier.get(i).remove(0);
+					}
 					if(aktier.get(i).get(aktier.get(i).size()-1).newAktie) {
 						
 						aktier.get(i).get(aktier.get(i).size()-1).newAktie = false;
