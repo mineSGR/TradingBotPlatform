@@ -23,15 +23,32 @@ public class TradingBot extends Thread {
 	
 	public void run() {
 		while(runner) {
-			for(int i = 0; i < aktier.size(); i++) {
-				if(aktier.get(i).get(aktier.get(i).size()-1).newAktie) {
-					
-					aktier.get(i).get(aktier.get(i).size()-1).newAktie = false;
+			aktieLock.writeLock().lock();
+			try {
+				for(int i = 0; i < aktier.size(); i++) {
+					if(aktier.get(i).get(aktier.get(i).size()-1).newAktie) {
+						
+						aktier.get(i).get(aktier.get(i).size()-1).newAktie = false;
+					}
 				}
+			} finally {
+				aktieLock.writeLock().unlock();
 			}
 			for(int i = 0; i < boughtAktie.size(); i++) {
-				
+				for(int j = 0; j < längd(boughtAktie.get(i)); i++) {
+					
+				}
 			}
 		}
+	}
+	
+	public int längd(main.Start.stock[] arr) {
+		int längd = 0;
+		for(int i = 0; i < arr.length; i++) {
+			if(arr[i] != null) {
+				längd++;
+			}
+		}
+		return längd;
 	}
 }

@@ -47,10 +47,11 @@ public class Start {
 		}
 	}
 	
-	public static class connection {
+	public static class connection extends Thread {
 		private Socket s;
 		private Scanner reader;
 		private PrintWriter writer;
+		private String uName;
 		
 		public connection(Socket s) throws Throwable {
 			this.s = s;
@@ -64,12 +65,13 @@ public class Start {
 			String name = reader.nextLine();
 			String psw = reader.nextLine();
 			userListLock.writeLock().lock();
+			boolean notFound = true;
 			try {
 				if(choose.equals("Login")) {
-					boolean notFound = true;
 					for(int i = 0; i < allUsers.size(); i++) {
 						if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password) && notFound) {
 							allUsers.get(i).conn = this;
+							uName = allUsers.get(i).username;
 							notFound = false;
 						}
 					}
@@ -80,6 +82,24 @@ public class Start {
 				}
 			} finally {
 				userListLock.writeLock().unlock();
+			}
+			if(!notFound) {
+				this.start();
+			}
+		}
+		
+		@Override
+		public void run() {
+			while(!s.isClosed()) {
+				String input = reader.nextLine();
+				if(input.equals("CLOSE")) {
+					try {
+						s.close();
+						main.Start.closeConnection(uName);
+					} catch (Throwable t) {}
+				}
+				
+				//fixa fler alternativ
 			}
 		}
 	}
@@ -108,7 +128,7 @@ public class Start {
 				while(serverRunning) {
 					try {
 						ss.wait();
-						new Thread(() -> {try {connection c = new connection(ss.accept());} catch (Throwable t) {}});
+						new Thread(() -> {try {new connection(ss.accept());} catch (Throwable t) {}});
 					} catch(Throwable t) {
 						main.Start.errorLogg("Connecting to server: " + t.toString());
 					}
@@ -118,10 +138,23 @@ public class Start {
 		} catch(Throwable t) {
 			errorLogg("Tried to start the server: " + t.toString());
 		}
-		
 		save();
 	}
 	
+	public static void closeConnection(String uName) {
+		userListLock.writeLock().lock();
+		try {
+			for(int i = 0; i < allUsers.size(); i++) {
+				if(allUsers.get(i).username.equals(uName)) {
+					allUsers.get(i).conn.stop();
+					allUsers.get(i).conn = null;
+				}
+			}
+		} finally {
+			userListLock.writeLock().unlock();
+		}
+	}
+
 	private static boolean nameExists(String name) {
 		userListLock.readLock().lock();
 		boolean found = false;
