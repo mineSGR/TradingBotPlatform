@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import main.Start.Recipt;
+
 public class TradingBot extends Thread {
 
 	private final int maxSameAktie = 5;
@@ -11,6 +13,8 @@ public class TradingBot extends Thread {
 	public ArrayList<ArrayList<main.Start.stock>> aktier;
 	public ReentrantReadWriteLock aktieLock;
 	private ArrayList<main.Start.stock[]> boughtAktie;
+	public ArrayList<Recipt> recipts;
+	public ReentrantReadWriteLock reciptLock;
 	public boolean runner;
 	public BigDecimal money;
 	
@@ -19,6 +23,8 @@ public class TradingBot extends Thread {
 		aktier = new ArrayList<ArrayList<main.Start.stock>>();
 		aktieLock = new ReentrantReadWriteLock();
 		boughtAktie = new ArrayList<main.Start.stock[]>();
+		recipts = new ArrayList<Recipt>();
+		reciptLock = new ReentrantReadWriteLock();
 		this.start();
 	}
 	

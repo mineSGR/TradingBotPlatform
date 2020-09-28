@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
@@ -34,11 +35,15 @@ public class Start {
 		}
 	}
 	
+	public static class Recipt {
+		public BigDecimal boughtPrice;
+		public BigDecimal sellPrice;
+	}
+	
 	public static class user {
 		public TradingBot bot;
 		public String username;
 		public String password;
-		public connection conn;
 		
 		public user(String username, String password) {
 			this.username = username;
@@ -51,7 +56,7 @@ public class Start {
 		private Socket s;
 		private Scanner reader;
 		private PrintWriter writer;
-		private String uName;
+		private user bot;
 		
 		public connection(Socket s) throws Throwable {
 			this.s = s;
@@ -60,7 +65,7 @@ public class Start {
 			login();
 		}
 		
-		public void login() {
+		public void login() throws Throwable {
 			String choose = reader.nextLine();
 			String name = reader.nextLine();
 			String psw = reader.nextLine();
@@ -70,8 +75,7 @@ public class Start {
 				if(choose.equals("Login")) {
 					for(int i = 0; i < allUsers.size(); i++) {
 						if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password) && notFound) {
-							allUsers.get(i).conn = this;
-							uName = allUsers.get(i).username;
+							bot = allUsers.get(i);
 							notFound = false;
 						}
 					}
@@ -84,23 +88,24 @@ public class Start {
 				userListLock.writeLock().unlock();
 			}
 			if(!notFound) {
-				this.start();
-			}
-		}
-		
-		@Override
-		public void run() {
-			while(!s.isClosed()) {
-				String input = reader.nextLine();
-				if(input.equals("CLOSE")) {
+				choose = reader.nextLine();
+				if(choose.equals("GETMONEY")) {
+					writer.write(bot.bot.money.toString());
+					writer.flush();
+				} else if(choose.equals("GETTRADES")) {
+					bot.bot.reciptLock.readLock().lock();
 					try {
-						s.close();
-						main.Start.closeConnection(uName);
-					} catch (Throwable t) {}
+						for(int i = 0; i < bot.bot.recipts.size(); i++) {
+							writer.write(bot.bot.recipts.get(i).boughtPrice + " " + bot.bot.recipts.get(i).sellPrice);
+						}
+					} finally {
+						bot.bot.reciptLock.readLock().unlock();
+					}
+					writer.write("DONE");
+					writer.flush();
 				}
-				
-				//fixa fler alternativ
 			}
+			s.close();
 		}
 	}
 	
@@ -139,20 +144,6 @@ public class Start {
 			errorLogg("Tried to start the server: " + t.toString());
 		}
 		save();
-	}
-	
-	public static void closeConnection(String uName) {
-		userListLock.writeLock().lock();
-		try {
-			for(int i = 0; i < allUsers.size(); i++) {
-				if(allUsers.get(i).username.equals(uName)) {
-					allUsers.get(i).conn.stop();
-					allUsers.get(i).conn = null;
-				}
-			}
-		} finally {
-			userListLock.writeLock().unlock();
-		}
 	}
 
 	private static boolean nameExists(String name) {
