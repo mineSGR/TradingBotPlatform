@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import javax.swing.JOptionPane;
+
 import bot.Crawler;
 import bot.Shuffler;
 import bot.TradingBot;
@@ -62,6 +64,7 @@ public class Start {
 			this.s = s;
 			this.reader = new Scanner(s.getInputStream());
 			this.writer = new PrintWriter(s.getOutputStream());
+			JOptionPane.showMessageDialog(null, "Second");
 			login();
 		}
 		
@@ -69,25 +72,44 @@ public class Start {
 			String choose = reader.nextLine();
 			String name = reader.nextLine();
 			String psw = reader.nextLine();
-			userListLock.writeLock().lock();
-			boolean notFound = true;
-			try {
-				if(choose.equals("Login")) {
-					for(int i = 0; i < allUsers.size(); i++) {
-						if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password) && notFound) {
-							bot = allUsers.get(i);
-							notFound = false;
-						}
-					}
-				} else {
-					if(!nameExists(name)) {
-						
+			boolean found = false;
+			if(choose.equals("CHECKLOGIN")) {
+				boolean tmpFound = false;
+				for(int i = 0; i < allUsers.size(); i++) {
+					if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password) && !tmpFound) {
+						writer.write("TRUE");
+						writer.flush();
+						tmpFound = true;
 					}
 				}
-			} finally {
-				userListLock.writeLock().unlock();
+				if(!tmpFound) {
+					writer.write("FALSE");
+					writer.flush();
+				}
+			} else if(choose.equals("LOGIN")) {
+				for(int i = 0; i < allUsers.size(); i++) {
+					if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password) && !found) {
+						writer.write("TRUE");
+						bot = allUsers.get(i);
+						found = true;
+					}
+				}
+				if(!found) {
+					writer.write("FALSE");
+				}
+				writer.flush();
+			} else {
+				if(!nameExists(name)) {
+					userListLock.writeLock().lock();
+					try {
+						allUsers.add(new user(name, psw));
+						System.out.println("Here");
+					} finally {
+						userListLock.writeLock().unlock();
+					}
+				}
 			}
-			if(!notFound) {
+			if(found) {
 				choose = reader.nextLine();
 				if(choose.equals("GETMONEY")) {
 					writer.write(bot.bot.money.toString());
@@ -105,7 +127,6 @@ public class Start {
 					writer.flush();
 				}
 			}
-			s.close();
 		}
 	}
 	
@@ -128,12 +149,13 @@ public class Start {
 		load();
 		
 		try {
+			JOptionPane.showMessageDialog(null, "First");
 			ss = new ServerSocket(8989);
 			serverInput = new Thread(() -> {
 				while(serverRunning) {
 					try {
 						ss.wait();
-						new Thread(() -> {try {new connection(ss.accept());} catch (Throwable t) {}});
+						new Thread(() -> {try {new connection(ss.accept());} catch (Throwable t) {JOptionPane.showMessageDialog(null, "Error: " + t.toString());}});
 					} catch(Throwable t) {
 						main.Start.errorLogg("Connecting to server: " + t.toString());
 					}
@@ -143,7 +165,7 @@ public class Start {
 		} catch(Throwable t) {
 			errorLogg("Tried to start the server: " + t.toString());
 		}
-		save();
+		//save();
 	}
 
 	private static boolean nameExists(String name) {
