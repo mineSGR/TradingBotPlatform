@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
@@ -19,7 +18,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.swing.JOptionPane;
 
 import bot.Crawler;
-import bot.Shuffler;
 import bot.TradingBot;
 
 public class Start {
@@ -78,14 +76,13 @@ public class Start {
 				for(int i = 0; i < allUsers.size(); i++) {
 					if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password) && !tmpFound) {
 						writer.write("TRUE");
-						writer.flush();
 						tmpFound = true;
 					}
 				}
 				if(!tmpFound) {
 					writer.write("FALSE");
-					writer.flush();
 				}
+				writer.flush();
 			} else if(choose.equals("LOGIN")) {
 				for(int i = 0; i < allUsers.size(); i++) {
 					if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password) && !found) {
@@ -109,6 +106,7 @@ public class Start {
 					}
 				}
 			}
+			JOptionPane.showMessageDialog(null, "Third");
 			if(found) {
 				choose = reader.nextLine();
 				if(choose.equals("GETMONEY")) {
@@ -132,7 +130,6 @@ public class Start {
 	
 	private static String map;
 	public static Crawler scout;
-	public static Shuffler dealer;
 	public static ArrayList<user> allUsers;
 	public static ReentrantReadWriteLock userListLock;
 	
@@ -145,19 +142,17 @@ public class Start {
 		allUsers = new ArrayList<user>();
 		userListLock = new ReentrantReadWriteLock();
 		scout = new Crawler();
-		dealer = new Shuffler();
 		load();
 		
 		try {
-			JOptionPane.showMessageDialog(null, "First");
 			ss = new ServerSocket(8989);
 			serverInput = new Thread(() -> {
 				while(serverRunning) {
 					try {
-						ss.wait();
-						new Thread(() -> {try {new connection(ss.accept());} catch (Throwable t) {JOptionPane.showMessageDialog(null, "Error: " + t.toString());}});
+						Socket s = ss.accept();
+						new Thread (() -> {try {new connection(s);} catch(Throwable t) {main.Start.errorLogg("Error connecting to client: " + t.toString());}}).start();
 					} catch(Throwable t) {
-						main.Start.errorLogg("Connecting to server: " + t.toString());
+						main.Start.errorLogg("ServerError: " + t.toString());
 					}
 				}
 			});
@@ -165,7 +160,7 @@ public class Start {
 		} catch(Throwable t) {
 			errorLogg("Tried to start the server: " + t.toString());
 		}
-		//save();
+		save();
 	}
 
 	private static boolean nameExists(String name) {
@@ -222,7 +217,7 @@ public class Start {
 		if(!file.exists()) {
 			file.mkdirs();
 		}
-		file = new File(map + "\\SaveFile.txtt");
+		file = new File(map + "\\SaveFile.txt");
 		if(!file.exists()) {
 			try {
 				file.createNewFile();
