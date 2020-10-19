@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
@@ -14,6 +15,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import javax.swing.JOptionPane;
 
@@ -55,76 +57,63 @@ public class Start {
 	public static class connection extends Thread {
 		private Socket s;
 		private Scanner reader;
-		private PrintWriter writer;
-		private user bot;
+		private PrintWriter txtWriter;
+		private ObjectOutputStream objectWriter;
 		
 		public connection(Socket s) throws Throwable {
 			this.s = s;
 			this.reader = new Scanner(s.getInputStream());
-			this.writer = new PrintWriter(s.getOutputStream());
-			JOptionPane.showMessageDialog(null, "Second");
-			login();
+			this.txtWriter = new PrintWriter(s.getOutputStream());
+			this.objectWriter = new ObjectOutputStream(s.getOutputStream());
 		}
 		
-		public void login() throws Throwable {
+		public void activate() {
+			JOptionPane.showMessageDialog(null, "Third");
 			String choose = reader.nextLine();
 			String name = reader.nextLine();
 			String psw = reader.nextLine();
 			boolean found = false;
-			if(choose.equals("CHECKLOGIN")) {
-				boolean tmpFound = false;
-				for(int i = 0; i < allUsers.size(); i++) {
-					if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password) && !tmpFound) {
-						writer.write("TRUE");
-						tmpFound = true;
+			if(choose.equals("LOGIN")) {
+				userListLock.readLock().lock();
+				try {
+					for(int i = 0; i < allUsers.size(); i++) {
+						if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password) && !found) {
+							found = true;
+							txtWriter.println("TRUE");
+							txtWriter.flush();
+							try {
+							objectWriter.writeObject(allUsers.get(i).bot);
+							objectWriter.flush();
+							} catch(Throwable t) {
+								main.Start.errorLogg(t.toString());
+								try {s.close();} catch(Throwable t2) {}
+							}
+						}
 					}
-				}
-				if(!tmpFound) {
-					writer.write("FALSE");
-				}
-				writer.flush();
-			} else if(choose.equals("LOGIN")) {
-				for(int i = 0; i < allUsers.size(); i++) {
-					if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password) && !found) {
-						writer.write("TRUE");
-						bot = allUsers.get(i);
-						found = true;
-					}
+				} finally {
+					userListLock.readLock().unlock();
 				}
 				if(!found) {
-					writer.write("FALSE");
+					txtWriter.println("FALSE");
+					txtWriter.flush();
 				}
-				writer.flush();
-			} else {
+			} else if(choose.equals("CREATEACCOUNT")) {
 				if(!nameExists(name)) {
 					userListLock.writeLock().lock();
 					try {
 						allUsers.add(new user(name, psw));
-						System.out.println("Here");
+						txtWriter.println("TRUE");
 					} finally {
 						userListLock.writeLock().unlock();
 					}
+				} else {
+					txtWriter.println("FALSE");
 				}
+				txtWriter.flush();
 			}
-			JOptionPane.showMessageDialog(null, "Third");
-			if(found) {
-				choose = reader.nextLine();
-				if(choose.equals("GETMONEY")) {
-					writer.write(bot.bot.money.toString());
-					writer.flush();
-				} else if(choose.equals("GETTRADES")) {
-					bot.bot.reciptLock.readLock().lock();
-					try {
-						for(int i = 0; i < bot.bot.recipts.size(); i++) {
-							writer.write(bot.bot.recipts.get(i).boughtPrice + " " + bot.bot.recipts.get(i).sellPrice);
-						}
-					} finally {
-						bot.bot.reciptLock.readLock().unlock();
-					}
-					writer.write("DONE");
-					writer.flush();
-				}
-			}
+			try {
+				s.close();
+			} catch(Throwable t) {}
 		}
 	}
 	
@@ -142,25 +131,51 @@ public class Start {
 		allUsers = new ArrayList<user>();
 		userListLock = new ReentrantReadWriteLock();
 		scout = new Crawler();
-		load();
+		//load();
 		
 		try {
 			ss = new ServerSocket(8989);
 			serverInput = new Thread(() -> {
-				while(serverRunning) {
+				//while(serverRunning) {
 					try {
 						Socket s = ss.accept();
-						new Thread (() -> {try {new connection(s);} catch(Throwable t) {main.Start.errorLogg("Error connecting to client: " + t.toString());}}).start();
+						new Thread (() -> {try {connection con = new connection(s); con.activate();} catch(Throwable t) {main.Start.errorLogg("Error connecting to client: " + t.toString());}}).start();
+						
 					} catch(Throwable t) {
 						main.Start.errorLogg("ServerError: " + t.toString());
 					}
-				}
+					//i vanliga fall loopar den ovan men under testning när man bara vill testa med en client så låser sig porten om man inte 
+					//tar ss.close och datorn måste startas om för att låsa upp porten, därför är loopen borttagen tillfälligt
+					try {
+						Socket s = ss.accept();
+						new Thread (() -> {try {new connection(s);} catch(Throwable t) {main.Start.errorLogg("Error connecting to client: " + t.toString());}}).start();
+						ss.close();
+					} catch(Throwable t) {
+						main.Start.errorLogg("ServerError: " + t.toString());
+					}
+				//}
 			});
 			serverInput.start();
 		} catch(Throwable t) {
 			errorLogg("Tried to start the server: " + t.toString());
+			serverInput.stop();
+			try {ss.close();} catch (Throwable t2) {}
+			scout.stop();
+			for(int i = 0; i < allUsers.size(); i++) {
+				allUsers.get(i).bot.stop();
+			}
+			save();
+			System.exit(0);
+		}
+		JOptionPane.showMessageDialog(null, "Servern körs, klicka okej för att stoppa");
+		serverInput.stop();
+		try {ss.close();} catch (Throwable t2) {}
+		scout.stop();
+		for(int i = 0; i < allUsers.size(); i++) {
+			allUsers.get(i).bot.stop();
 		}
 		save();
+		System.exit(0);
 	}
 
 	private static boolean nameExists(String name) {
