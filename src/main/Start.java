@@ -27,12 +27,16 @@ public class Start {
 	public static class stock {
 		
 		public String name;
-		public BigDecimal value;
+		public BigDecimal price;
+		public BigDecimal change;
+		public int volume;
 		public boolean newAktie;
 		
-		public stock(String name, BigDecimal value) {
+		public stock(String name, BigDecimal price, BigDecimal change, int volume) {
 			this.name = name;
-			this.value = value;
+			this.price = price;
+			this.change = change;
+			this.volume = volume;
 			newAktie = true;
 		}
 	}
@@ -82,8 +86,18 @@ public class Start {
 							txtWriter.println("TRUE");
 							txtWriter.flush();
 							try {
-							objectWriter.writeObject(allUsers.get(i).bot);
-							objectWriter.flush();
+								allUsers.get(i).bot.aktieLock.readLock().lock();
+								allUsers.get(i).bot.reciptLock.readLock().lock();
+								try {
+									objectWriter.writeObject(allUsers.get(i).bot.aktier);
+									objectWriter.writeObject(allUsers.get(i).bot.boughtAktie);
+									objectWriter.writeObject(allUsers.get(i).bot.recipts);
+									objectWriter.writeObject(allUsers.get(i).bot.money);
+									objectWriter.flush();
+								} finally {
+									allUsers.get(i).bot.aktieLock.readLock().unlock();
+									allUsers.get(i).bot.reciptLock.readLock().unlock();
+								}
 							} catch(Throwable t) {
 								main.Start.errorLogg(t.toString());
 								try {s.close();} catch(Throwable t2) {}

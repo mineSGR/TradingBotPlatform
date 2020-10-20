@@ -12,7 +12,7 @@ public class TradingBot extends Thread {
 	private final int antalSparadeAktier = 100;
 	public ArrayList<ArrayList<main.Start.stock>> aktier;
 	public ReentrantReadWriteLock aktieLock;
-	private ArrayList<main.Start.stock[]> boughtAktie;
+	public ArrayList<main.Start.stock[]> boughtAktie;
 	public ArrayList<Recipt> recipts;
 	public ReentrantReadWriteLock reciptLock;
 	public boolean runner;
