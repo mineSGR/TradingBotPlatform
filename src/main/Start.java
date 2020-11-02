@@ -30,20 +30,26 @@ public class Start {
 		public BigDecimal price;
 		public BigDecimal change;
 		public int volume;
-		public boolean newAktie;
+		public int algo;
 		
 		public stock(String name, BigDecimal price, BigDecimal change, int volume) {
 			this.name = name;
 			this.price = price;
 			this.change = change;
 			this.volume = volume;
-			newAktie = true;
 		}
 	}
 	
 	public static class Recipt {
+		public String name;
 		public BigDecimal boughtPrice;
 		public BigDecimal sellPrice;
+		
+		public Recipt(String name, BigDecimal boughtPrice, BigDecimal sellPrice) {
+			this.name = name;
+			this.boughtPrice = boughtPrice;
+			this.sellPrice = sellPrice;
+		}
 	}
 	
 	public static class user {
@@ -127,7 +133,9 @@ public class Start {
 			}
 			try {
 				s.close();
-			} catch(Throwable t) {}
+			} catch(Throwable t) {
+				JOptionPane.showMessageDialog(null, "Kunde inte stänga socket: " + t.toString());
+			}
 		}
 	}
 	
@@ -144,7 +152,7 @@ public class Start {
 		map = System.getenv("Appdata") + "\\SebbeProduktion\\TradingBot";
 		allUsers = new ArrayList<user>();
 		userListLock = new ReentrantReadWriteLock();
-		scout = new Crawler();
+		//scout = new Crawler();
 		//load();
 		
 		try {
@@ -163,6 +171,7 @@ public class Start {
 					try {
 						Socket s = ss.accept();
 						new Thread (() -> {try {new connection(s);} catch(Throwable t) {main.Start.errorLogg("Error connecting to client: " + t.toString());}}).start();
+						Socket sss = ss.accept();
 						ss.close();
 					} catch(Throwable t) {
 						main.Start.errorLogg("ServerError: " + t.toString());
@@ -182,14 +191,13 @@ public class Start {
 			System.exit(0);
 		}
 		JOptionPane.showMessageDialog(null, "Servern körs, klicka okej för att stoppa");
-		serverInput.stop();
-		try {ss.close();} catch (Throwable t2) {}
-		scout.stop();
-		for(int i = 0; i < allUsers.size(); i++) {
-			allUsers.get(i).bot.stop();
+		
+		try {/*serverInput.stop();*/ss.close();/*scout.stop();*/} catch (Throwable t2) {}
+		/*for(int i = 0; i < allUsers.size(); i++) {
+			try {allUsers.get(i).bot.stop();} catch(Throwable t) {}
 		}
 		save();
-		System.exit(0);
+		System.exit(0);*/
 	}
 
 	private static boolean nameExists(String name) {

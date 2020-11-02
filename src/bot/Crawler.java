@@ -1,34 +1,46 @@
 package bot;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
-import main.Start.stock;
-
 public class Crawler extends Thread {
 
 	private final String website = "https://finviz.com/screener.ashx?v=111&f=cap_small,sh_avgvol_o1000,sh_curvol_o500,sh_price_u10,sh_relvol_o1";
-	public boolean running;
+	public int runs;
+	public String datum;
 	public ArrayList<ArrayList<main.Start.stock>> stocks;
 	public ReadWriteLock lock;
+	private boolean newDay;
 	
 	public Crawler() {
-		running = true;
+		datum = "-1";
+		runs = 0;
 		stocks = new ArrayList<ArrayList<main.Start.stock>>();
 		lock = new ReentrantReadWriteLock();
+		newDay = true;
 		
 		this.start();
 	}
 	
 	public void run() {
-		while(running) {
+		if(!datum.equals(DateTimeFormatter.ofPattern("dd").format(LocalDateTime.now()))) {
+			datum = DateTimeFormatter.ofPattern("dd").format(LocalDateTime.now());
+			runs = 0;
+			stocks.add(new ArrayList<main.Start.stock>());
+			for(int i = 0; i < main.Start.allUsers.size(); i++) {
+				main.Start.allUsers.get(i).bot.start();
+			}
+		}
+		while(runs < 130 && Integer.parseInt(String.valueOf(DateTimeFormatter.ofPattern("HH").format(LocalDateTime.now()))+String.valueOf(DateTimeFormatter.ofPattern("mm").format(LocalDateTime.now()))) > 1330) {
+			runs++;
 			Elements aktier = null;
 			ArrayList<String> storage = new ArrayList<String>();
 			try {
@@ -60,7 +72,7 @@ public class Crawler extends Thread {
 			shuffler();
 		}
 		try {
-			Thread.sleep(300000);
+			Thread.sleep(3*60*1000);
 		} catch(Throwable t) {
 			main.Start.errorLogg(t.toString());
 		}
@@ -83,7 +95,13 @@ public class Crawler extends Thread {
 			for(int i = 0; i < storage.size(); i += 11) {
 				boolean foundPlace = false;
 				main.Start.stock tmpStock = new main.Start.stock(storage.get(i+1), new BigDecimal(storage.get(i+8)), new BigDecimal(storage.get(i+9)), Integer.parseInt(storage.get(i+10)));
-				for(int j = 0; j < stocks.size(); j++) {
+				
+				
+				main.Start.errorLogg("Aktie: " + tmpStock.name + ", " + tmpStock.price + ", " + tmpStock.change + ", " + tmpStock.volume);
+				
+				
+				
+				for(int j = 0; j < stocks.get(stocks.size()-1).size(); j++) {
 					if(stocks.get(j).size() > 0) {
 						if(stocks.get(j).get(0).name.equals(storage.get(i+1))) {
 							stocks.get(j).add(tmpStock);
@@ -112,22 +130,26 @@ public class Crawler extends Thread {
 						boolean foundPlace = false;
 						main.Start.allUsers.get(i).bot.aktieLock.writeLock().lock();
 						try {
-							for(int m = 0; m < main.Start.allUsers.get(i).bot.aktier.size(); m++) {
-								if(main.Start.allUsers.get(i).bot.aktier.get(m).get(0).name.equals(tmpStock.name)) {
-									main.Start.allUsers.get(i).bot.aktier.get(m).add(tmpStock);
+							for(int m = 0; m < main.Start.allUsers.get(i).bot.aktier.get(main.Start.allUsers.get(i).bot.aktier.size()-1).size(); m++) {
+								if(newDay) {
+									main.Start.allUsers.get(i).bot.aktier.add(new ArrayList<ArrayList<main.Start.stock>>());
+								}
+								if(main.Start.allUsers.get(i).bot.aktier.get(main.Start.allUsers.get(i).bot.aktier.size()-1).get(m).get(0).name.equals(tmpStock.name)) {
+									main.Start.allUsers.get(i).bot.aktier.get(main.Start.allUsers.get(i).bot.aktier.size()-1).get(m).add(tmpStock);
 									foundPlace = true;
 								}
 							}
 							if(!foundPlace) {
-								main.Start.allUsers.get(i).bot.aktier.add(new ArrayList<main.Start.stock>());
-								main.Start.allUsers.get(i).bot.aktier.get(main.Start.allUsers.get(i).bot.aktier.size()-1).add(tmpStock);
-							}
+								main.Start.allUsers.get(i).bot.aktier.get(main.Start.allUsers.get(i).bot.aktier.size()-1).add(new ArrayList<main.Start.stock>());
+								main.Start.allUsers.get(i).bot.aktier.get(main.Start.allUsers.get(i).bot.aktier.size()-1).get(main.Start.allUsers.get(i).bot.aktier.size()-1).add(tmpStock);
+							}	
 						} finally {
 							main.Start.allUsers.get(i).bot.aktieLock.writeLock().unlock();
 						}
 					}
 				}
 			}
+			stocks = new ArrayList<ArrayList<main.Start.stock>>();
 		} finally {
 			lock.writeLock().unlock();
 		}
