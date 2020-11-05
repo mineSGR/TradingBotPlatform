@@ -26,8 +26,6 @@ public class Crawler extends Thread {
 		stocks = new ArrayList<ArrayList<main.Start.stock>>();
 		lock = new ReentrantReadWriteLock();
 		newDay = true;
-		
-		this.start();
 	}
 	
 	public void run() {
