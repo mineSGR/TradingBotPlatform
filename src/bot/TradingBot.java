@@ -44,6 +44,7 @@ public class TradingBot extends Thread {
 	
 	public TradingBot() {
 		runner = true;
+		money = new BigDecimal(0);
 		aktier = new ArrayList<ArrayList<ArrayList<main.Start.stock>>>();
 		traces = new ArrayList<tracement>();
 		trendValues = new trendSaver[20];

@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
@@ -15,7 +14,6 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import javax.swing.JOptionPane;
 
@@ -78,7 +76,6 @@ public class Start {
 		}
 		
 		public void activate() {
-			JOptionPane.showMessageDialog(null, "Third");
 			String choose = reader.nextLine();
 			String name = reader.nextLine();
 			String psw = reader.nextLine();
@@ -98,8 +95,9 @@ public class Start {
 									objectWriter.writeObject(allUsers.get(i).bot.aktier);
 									objectWriter.writeObject(allUsers.get(i).bot.boughtAktie);
 									objectWriter.writeObject(allUsers.get(i).bot.recipts);
-									objectWriter.writeObject(allUsers.get(i).bot.money);
+									txtWriter.println(allUsers.get(i).bot.money);
 									objectWriter.flush();
+									txtWriter.flush();
 								} finally {
 									allUsers.get(i).bot.aktieLock.readLock().unlock();
 									allUsers.get(i).bot.reciptLock.readLock().unlock();
@@ -134,7 +132,7 @@ public class Start {
 			try {
 				s.close();
 			} catch(Throwable t) {
-				JOptionPane.showMessageDialog(null, "Kunde inte stänga socket: " + t.toString());
+				errorLogg("Kunde inte stänga socket: " + t.toString());
 			}
 		}
 	}
@@ -152,13 +150,13 @@ public class Start {
 		map = System.getenv("Appdata") + "\\SebbeProduktion\\TradingBot";
 		allUsers = new ArrayList<user>();
 		userListLock = new ReentrantReadWriteLock();
-		//scout = new Crawler();
-		//load();
+		scout = new Crawler();
+		load();
 		
 		try {
 			ss = new ServerSocket(8989);
 			serverInput = new Thread(() -> {
-				//while(serverRunning) {
+				while(serverRunning) {
 					try {
 						Socket s = ss.accept();
 						new Thread (() -> {try {connection con = new connection(s); con.activate();} catch(Throwable t) {main.Start.errorLogg("Error connecting to client: " + t.toString());}}).start();
@@ -166,17 +164,7 @@ public class Start {
 					} catch(Throwable t) {
 						main.Start.errorLogg("ServerError: " + t.toString());
 					}
-					//i vanliga fall loopar den ovan men under testning när man bara vill testa med en client så låser sig porten om man inte 
-					//tar ss.close och datorn måste startas om för att låsa upp porten, därför är loopen borttagen tillfälligt
-					try {
-						Socket s = ss.accept();
-						new Thread (() -> {try {new connection(s);} catch(Throwable t) {main.Start.errorLogg("Error connecting to client: " + t.toString());}}).start();
-						Socket sss = ss.accept();
-						ss.close();
-					} catch(Throwable t) {
-						main.Start.errorLogg("ServerError: " + t.toString());
-					}
-				//}
+				}
 			});
 			serverInput.start();
 		} catch(Throwable t) {
@@ -191,13 +179,9 @@ public class Start {
 			System.exit(0);
 		}
 		JOptionPane.showMessageDialog(null, "Servern körs, klicka okej för att stoppa");
-		
+		JOptionPane.showMessageDialog(null, "Stänger av efter denna");
 		try {/*serverInput.stop();*/ss.close();/*scout.stop();*/} catch (Throwable t2) {}
-		/*for(int i = 0; i < allUsers.size(); i++) {
-			try {allUsers.get(i).bot.stop();} catch(Throwable t) {}
-		}
 		save();
-		System.exit(0);*/
 	}
 
 	private static boolean nameExists(String name) {
