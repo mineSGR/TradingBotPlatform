@@ -8,6 +8,8 @@ import main.Start.Recipt;
 
 public class TradingBot extends Thread {
 
+	//@author Sebastian Green och Anton Östman
+	
 	public static class tracement {
 		public int highTrace;
 		public int lowTrace;
@@ -44,7 +46,6 @@ public class TradingBot extends Thread {
 	
 	public TradingBot() {
 		runner = true;
-		money = new BigDecimal(0);
 		aktier = new ArrayList<ArrayList<ArrayList<main.Start.stock>>>();
 		traces = new ArrayList<tracement>();
 		trendValues = new trendSaver[20];
@@ -52,8 +53,10 @@ public class TradingBot extends Thread {
 		boughtAktie = new ArrayList<main.Start.stock[]>();
 		recipts = new ArrayList<Recipt>();
 		reciptLock = new ReentrantReadWriteLock();
+		money = new BigDecimal(0);
 	}
 	
+	//Gör en evaluering av aktierna den har för att se om den ska köpa eller sälja någon av dem
 	public void run() {
 		while(runner) {
 			aktieLock.writeLock().lock();
@@ -132,7 +135,7 @@ public class TradingBot extends Thread {
 														if(boughtAktie.get(t)[0].name.equals(aktier.get(aktier.size()-1).get(j).get(0).name)) {
 															for(int m = 0; m < längd(boughtAktie.get(t)); m++) {
 																if(boughtAktie.get(t)[m].algo == 1)  {
-																	money.add(higestLowest(0, aktier.get(aktier.size()-1).get(j)));
+																	money = money.add(higestLowest(0, aktier.get(aktier.size()-1).get(j)));
 																	reciptLock.writeLock().lock();
 																	try {
 																		recipts.add(new Recipt(boughtAktie.get(t)[m].name, boughtAktie.get(t)[m].price, higestLowest(0, aktier.get(aktier.size()-1).get(j))));
@@ -173,7 +176,7 @@ public class TradingBot extends Thread {
 						for(int m = 0; m < längd(boughtAktie.get(i)); m++) {
 							BigDecimal countDec = new BigDecimal(boughtAktie.get(i)[m].price.toString()).multiply(new BigDecimal("1.1"));
 							if(higestLowest(0, aktier.get(aktier.size()-1).get(j)).compareTo(countDec) == 1 && boughtAktie.get(i)[m].algo == 0)  {
-								money.add(higestLowest(0, aktier.get(aktier.size()-1).get(j)));
+								money = money.add(higestLowest(0, aktier.get(aktier.size()-1).get(j)));
 								reciptLock.writeLock().lock();
 								try {
 									recipts.add(new Recipt(boughtAktie.get(i)[m].name, boughtAktie.get(i)[m].price, higestLowest(0, aktier.get(aktier.size()-1).get(j))));
@@ -189,7 +192,9 @@ public class TradingBot extends Thread {
 		}
 	}
 	
-	//0 ger högsta värdet och 1 ger lägsta värdet
+	/* Den hämtar det största värdet i listan
+	*  @param val=0 ger högsta värdet och val=1 ger lägsta värdet
+	*/
 	private BigDecimal higestLowest(int val, ArrayList<main.Start.stock> input) {
 		BigDecimal curr = input.get(0).price;
 		for(int i = 1; i < input.size(); i++) {
@@ -206,12 +211,13 @@ public class TradingBot extends Thread {
 		return curr;
 	}
 	
+	//Methoden som köper aktierna
 	private void buy(int i, int a) {
 		if(money.compareTo(aktier.get(aktier.size()-1).get(i).get(aktier.get(aktier.size()-1).get(i).size()-1).price) == 1) {
 			for(int j = 0; j < boughtAktie.size(); j++) {
 				if(boughtAktie.get(j)[0].name.equals(aktier.get(aktier.size()-1).get(i).get(aktier.get(aktier.size()-1).get(i).size()-1).name)) {
 					if(längd(boughtAktie.get(j)) < 5) {
-						money.subtract(aktier.get(aktier.size()-1).get(i).get(aktier.get(aktier.size()-1).get(i).size()-1).price);
+						money = money.subtract(aktier.get(aktier.size()-1).get(i).get(aktier.get(aktier.size()-1).get(i).size()-1).price);
 						boolean foundPlace = false;
 						for(int m = 0; m < boughtAktie.get(j).length; m++) {
 							if(boughtAktie.get(j)[m] == null && !foundPlace) {
@@ -226,6 +232,7 @@ public class TradingBot extends Thread {
 		}
 	}
 	
+	//Den retunerar den verkliga längden av den statiska arrayen
 	public int längd(main.Start.stock[] arr) {
 		int längd = 0;
 		for(int i = 0; i < arr.length; i++) {

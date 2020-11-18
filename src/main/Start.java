@@ -62,23 +62,24 @@ public class Start {
 		}
 	}
 	
-	public static class connection extends Thread {
+	public static class connection {
 		private Socket s;
-		private Scanner reader;
+		private Scanner txtReader;
 		private PrintWriter txtWriter;
 		private ObjectOutputStream objectWriter;
 		
 		public connection(Socket s) throws Throwable {
 			this.s = s;
-			this.reader = new Scanner(s.getInputStream());
+			this.txtReader = new Scanner(s.getInputStream());
 			this.txtWriter = new PrintWriter(s.getOutputStream());
 			this.objectWriter = new ObjectOutputStream(s.getOutputStream());
 		}
 		
+		//Methoden som hanterar när en client kopplar upp sig mot servern
 		public void activate() {
-			String choose = reader.nextLine();
-			String name = reader.nextLine();
-			String psw = reader.nextLine();
+			String choose = txtReader.nextLine();
+			String name = txtReader.nextLine();
+			String psw = txtReader.nextLine();
 			boolean found = false;
 			if(choose.equals("LOGIN")) {
 				userListLock.readLock().lock();
@@ -92,10 +93,13 @@ public class Start {
 								allUsers.get(i).bot.aktieLock.readLock().lock();
 								allUsers.get(i).bot.reciptLock.readLock().lock();
 								try {
-									objectWriter.writeObject(allUsers.get(i).bot.aktier);
 									objectWriter.writeObject(allUsers.get(i).bot.boughtAktie);
 									objectWriter.writeObject(allUsers.get(i).bot.recipts);
-									txtWriter.println(allUsers.get(i).bot.money);
+									String bdValue = "0";
+									if(allUsers.get(i).bot.money.compareTo(new BigDecimal(0)) != 0) {
+										bdValue = allUsers.get(i).bot.money.toString();
+									}
+									txtWriter.println(bdValue);
 									objectWriter.flush();
 									txtWriter.flush();
 								} finally {
@@ -128,6 +132,23 @@ public class Start {
 					txtWriter.println("FALSE");
 				}
 				txtWriter.flush();
+			} else if(choose.equals("MONEY")) {
+				int input = txtReader.nextInt();
+				userListLock.readLock().lock();
+				try {
+					for(int i = 0; i < allUsers.size(); i++) {
+						if(name.equals(allUsers.get(i).username) && psw.equals(allUsers.get(i).password)) {
+							try {
+								allUsers.get(i).bot.money = allUsers.get(i).bot.money.add(new BigDecimal(input));
+							} catch(Throwable t) {
+								main.Start.errorLogg(t.toString());
+								try {s.close();} catch(Throwable t2) {}
+							}
+						}
+					}
+				} finally {
+					userListLock.readLock().unlock();
+				}
 			}
 			try {
 				s.close();
@@ -152,7 +173,7 @@ public class Start {
 		userListLock = new ReentrantReadWriteLock();
 		scout = new Crawler();
 		load();
-		
+		scout.start();
 		try {
 			ss = new ServerSocket(8989);
 			serverInput = new Thread(() -> {
@@ -180,10 +201,17 @@ public class Start {
 		}
 		JOptionPane.showMessageDialog(null, "Servern körs, klicka okej för att stoppa");
 		JOptionPane.showMessageDialog(null, "Stänger av efter denna");
-		try {/*serverInput.stop();*/ss.close();/*scout.stop();*/} catch (Throwable t2) {}
+		serverInput.stop();
+		try {ss.close();} catch (Throwable t2) {}
+		scout.stop();
+		for(int i = 0; i < allUsers.size(); i++) {
+			allUsers.get(i).bot.stop();
+		}
 		save();
+		System.exit(0);
 	}
-
+	
+	//Methoden kollar ifall användarnamnet redan finns
 	private static boolean nameExists(String name) {
 		userListLock.readLock().lock();
 		boolean found = false;
@@ -199,12 +227,13 @@ public class Start {
 		return found;
 	}
 	
+	//Methoden sparar den nödvändiga informationen innan nedstängning
 	private static void save() {
 		File file = new File(map);
 		if(!file.exists()) {
 			file.mkdirs();
 		}
-		file = new File(map + "\\SaveFile.txt");
+		file = new File(map + "\\" + "SaveFile.txt");
 		if(!file.exists()) {
 			try {
 				file.createNewFile();
@@ -232,13 +261,13 @@ public class Start {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
+	//Methoden laddar in nödvändig information när programmet startas
 	private static void load() {
 		File file = new File(map);
 		if(!file.exists()) {
 			file.mkdirs();
 		}
-		file = new File(map + "\\SaveFile.txt");
+		file = new File(/*map + "\\*/"SaveFile.txt");
 		if(!file.exists()) {
 			try {
 				file.createNewFile();
@@ -277,7 +306,7 @@ public class Start {
 		if(!file.exists()) {
 			file.mkdirs();
 		}
-		file = new File(map + "\\Error.txt");
+		file = new File(map + "\\" + "Error.txt");
 		if(!file.exists()) {
 			try {
 				file.createNewFile();

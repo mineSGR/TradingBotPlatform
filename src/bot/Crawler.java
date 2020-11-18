@@ -13,6 +13,8 @@ import org.jsoup.select.Elements;
 
 public class Crawler extends Thread {
 
+	//@author Sebastian Green och Anton Östman
+	
 	private final String website = "https://finviz.com/screener.ashx?v=111&f=cap_small,sh_avgvol_o1000,sh_curvol_o500,sh_price_u10,sh_relvol_o1";
 	public int runs;
 	public String datum;
@@ -28,6 +30,7 @@ public class Crawler extends Thread {
 		newDay = true;
 	}
 	
+	//Main methoden i Crawlern och är den som ansvarar för att hämta informationen från nätet
 	public void run() {
 		if(!datum.equals(DateTimeFormatter.ofPattern("dd").format(LocalDateTime.now()))) {
 			datum = DateTimeFormatter.ofPattern("dd").format(LocalDateTime.now());
@@ -87,6 +90,8 @@ public class Crawler extends Thread {
 		return done;
 	}
 	
+	
+	//Gör exakt det den säger att den ska göra, den konverterar inputen från websidan till object som skickas vidare in i programmet
 	private void convertStock(ArrayList<String> storage) {
 		lock.writeLock().lock();
 		try {
@@ -117,6 +122,7 @@ public class Crawler extends Thread {
 		}
 	}
 	
+	//Även denna gör det som står, den flyttar informationen från crawlern till tradingbottarna
 	private void shuffler() {
 		lock.writeLock().lock();
 		try {
